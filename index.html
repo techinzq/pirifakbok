@@ -1,0 +1,256 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>#ฝากบอกพิริ</title>
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <header class="topbar">
+    <div class="brand-pill">#ฝากบอกพิริ</div>
+    <button id="adminOpen" class="ghost-btn">แอดมิน</button>
+  </header>
+
+  <main class="shell">
+    <section id="userView" class="card form-card">
+      <div class="section-head">
+        <div>
+          <p class="kicker">ส่งข้อความให้เพจ</p>
+          <h1>กรอกข้อมูลแล้วส่งให้แอดมิน</h1>
+          <p class="muted">ระบบจัดข้อความลงกราฟิกของเพจให้อัตโนมัติ</p>
+        </div>
+      </div>
+
+      <label class="field">
+        <span>หัวข้อ</span>
+        <textarea id="headline" rows="3" maxlength="180" placeholder="พิมพ์หัวข้อ..."></textarea>
+        <small><span id="headlineCount">0</span>/180</small>
+      </label>
+
+      <label class="field">
+        <span>รายละเอียด</span>
+        <textarea id="bodyText" rows="6" maxlength="700" placeholder="พิมพ์รายละเอียด..."></textarea>
+        <small><span id="bodyCount">0</span>/700</small>
+      </label>
+
+      <div id="textWarning" class="warning-box hidden">ข้อความยาวเกินพื้นที่กราฟิก แนะนำให้ย่อก่อนส่ง</div>
+
+      <label class="field">
+        <span>Instagram (ไม่บังคับ)</span>
+        <input id="instagram" maxlength="120" placeholder="เช่น piri, @piri หรือ https://instagram.com/piri" />
+        <small id="igHelp">ระบบจะจัดรูปแบบเป็น @username ให้อัตโนมัติ</small>
+      </label>
+
+      <div class="auto-date-note">วันที่ฝาก: <strong id="autoDatePreview"></strong> · ระบบใส่ให้อัตโนมัติ</div>
+
+      <label class="field">
+        <span>รูปประกอบ (สูงสุด 10 รูป)</span>
+        <input id="photoUpload" type="file" accept="image/*" multiple />
+        <small id="photoCount">เลือกได้ 1–10 รูป · รูปแรกหน้า 1 · รูปที่เหลือจัดลงหน้า 2 อัตโนมัติ</small>
+      </label>
+
+      <div class="preview-card">
+        <div class="preview-title">
+          <strong>ตัวอย่างโพสต์</strong>
+          <span id="activeThemeName" class="theme-chip">กำลังโหลดธีม...</span>
+        </div>
+        <canvas id="postCanvas" width="1080" height="1350"></canvas>
+        <div id="galleryPreviewWrap" class="gallery-preview-wrap hidden">
+          <div class="page-separator"><span>หน้า 2 · รูปเพิ่มเติม</span></div>
+          <canvas id="galleryCanvas" width="1080" height="1350"></canvas>
+        </div>
+
+        <div id="editorBar" class="editor-bar">
+          <button class="editor-tool active" data-editor-panel="text">Aa <span>ข้อความ</span></button>
+          <button class="editor-tool" data-editor-panel="stickers">✦ <span>สติ๊กเกอร์</span></button>
+          <button id="addTextBtn" class="editor-tool">＋ <span>เพิ่มข้อความ</span></button>
+          <button id="undoBtn" class="editor-tool">↶ <span>ย้อนกลับ</span></button>
+          <button id="redoBtn" class="editor-tool">↷ <span>ทำซ้ำ</span></button>
+          <button id="previewModeBtn" class="editor-tool">◉ <span>ดูภาพจริง</span></button>
+        </div>
+
+        <div id="textEditorPanel" class="editor-sheet">
+          <div class="editor-sheet-head"><strong>แต่งข้อความ</strong><small>แตะข้อความบนรูปหรือลากเพื่อย้ายตำแหน่ง</small></div>
+          <div class="text-target-row">
+            <button class="target-chip active" data-text-target="headline">หัวข้อ</button>
+            <button class="target-chip" data-text-target="body">รายละเอียด</button>
+            <button class="target-chip" data-text-target="instagram">Instagram</button>
+          </div>
+          <div class="preset-scroll">
+            <button class="preset-card" data-preset="normal">ปกติ</button>
+            <button class="preset-card" data-preset="headline">พาดหัว</button>
+            <button class="preset-card" data-preset="cute">🎀 คิขุ</button>
+            <button class="preset-card" data-preset="cool">🔥 เท่</button>
+            <button class="preset-card neon" data-preset="neon">NEON</button>
+            <button class="preset-card" data-preset="outline">ขาวขอบดำ</button>
+            <button class="preset-card" data-preset="minimal">มินิมอล</button>
+          </div>
+          <details class="advanced-box">
+            <summary>ปรับเพิ่มเติม</summary>
+            <div class="editor-grid">
+              <label><span>ฟอนต์</span><select id="userFont"><option value="Tahoma">อ่านง่าย</option><option value="Arial">Arial</option><option value="Trebuchet MS">Trebuchet</option><option value="Georgia">Editorial</option><option value="Impact">Impact</option><option value="Comic Sans MS">Cute</option><option value="Courier New">Mono</option><option value="Times New Roman">Classic</option></select></label>
+              <label><span>ขนาด <b id="fontSizeValue">72</b></span><input id="userFontSize" type="range" min="20" max="130" value="72"></label>
+              <label><span>สี</span><input id="userTextColor" type="color" value="#111111"></label>
+              <label><span>ความโปร่งใส</span><input id="userTextOpacity" type="range" min="20" max="100" value="100"></label>
+              <label><span>ระยะบรรทัด</span><input id="userLineHeight" type="range" min="80" max="220" value="120"></label>
+              <label><span>หมุน</span><input id="userRotation" type="range" min="-30" max="30" value="0"></label>
+            </div>
+            <div class="toggle-tools">
+              <button id="boldBtn" class="mini-toggle">B</button><button id="italicBtn" class="mini-toggle"><i>I</i></button>
+              <button class="mini-toggle align-btn active" data-align="left">≡←</button><button class="mini-toggle align-btn" data-align="center">≡</button><button class="mini-toggle align-btn" data-align="right">→≡</button>
+              <label class="effect-toggle"><input id="outlineToggle" type="checkbox"> ขอบ</label>
+              <label class="effect-toggle"><input id="shadowToggleUser" type="checkbox"> เงา</label>
+              <label class="effect-toggle"><input id="glowToggle" type="checkbox"> Glow</label>
+              <label class="effect-toggle"><input id="textBgToggle" type="checkbox"> พื้นหลัง</label>
+            </div>
+            <div class="editor-grid effect-colors">
+              <label><span>สีขอบ</span><input id="outlineColor" type="color" value="#000000"></label>
+              <label><span>สีเงา/Glow</span><input id="effectColor" type="color" value="#000000"></label>
+              <label><span>สีพื้นหลัง</span><input id="textBgColor" type="color" value="#ffffff"></label>
+              <label><span>ความหนาขอบ</span><input id="outlineWidth" type="range" min="0" max="12" value="4"></label>
+            </div>
+          </details>
+          <div class="editor-action-row"><button id="resetLayoutBtn" class="ghost-btn">รีเซ็ตการจัดวาง</button><span class="muted tiny">Enter เพื่อกำหนดบรรทัดเองได้</span></div>
+        </div>
+
+        <div id="stickerEditorPanel" class="editor-sheet hidden">
+          <div class="editor-sheet-head"><strong>สติ๊กเกอร์ & มีม</strong><small>แตะเพื่อเพิ่ม แล้วลากบนรูปได้เลย</small></div>
+          <div class="sticker-tabs">
+            <button class="sticker-tab active" data-sticker-cat="recommended">⭐ แนะนำ</button><button class="sticker-tab" data-sticker-cat="cute">🎀 คิขุ</button><button class="sticker-tab" data-sticker-cat="cool">🔥 เท่/เริ่ด</button><button class="sticker-tab" data-sticker-cat="reaction">😂 มีม/Reaction</button><button class="sticker-tab" data-sticker-cat="sparkle">✨ วิ้ง</button><button class="sticker-tab" data-sticker-cat="arrow">➡️ ลูกศร</button><button class="sticker-tab" data-sticker-cat="seasonal">🎄 เทศกาล</button><button class="sticker-tab" data-sticker-cat="community">🌎 คลังรวม</button><button class="sticker-tab" data-sticker-cat="admin">💎 ของเพจ</button>
+          </div>
+          <div id="stickerGrid" class="sticker-grid"></div>
+          <div class="sticker-controls hidden" id="stickerControls">
+            <strong>สติ๊กเกอร์ที่เลือก</strong>
+            <label>ขนาด <input id="stickerSize" type="range" min="30" max="420" value="120"></label>
+            <label>หมุน <input id="stickerRotation" type="range" min="-180" max="180" value="0"></label>
+            <label>ความโปร่งใส <input id="stickerOpacity" type="range" min="20" max="100" value="100"></label>
+            <button id="flipStickerBtn" class="ghost-btn">กลับด้าน</button><button id="duplicateStickerBtn" class="ghost-btn">ทำซ้ำ</button><button id="deleteStickerBtn" class="danger-btn">ลบ</button>
+          </div>
+          <label class="upload-sticker-btn">＋ อัปโหลดมีม/สติ๊กเกอร์เข้าคลังรวม<input id="userStickerUpload" type="file" accept="image/png,image/webp,image/jpeg" hidden></label><p id="communityStickerStatus" class="muted tiny">รูปที่อัปจะถูกบันทึกไว้ในคลังรวม ทุกคนที่เข้าเว็บสามารถเลื่อนมาใช้ต่อได้</p>
+        </div>
+      </div>
+
+      <button id="submitBtn" class="primary-btn">ส่งให้แอดมิน</button>
+      <p id="submitStatus" class="status"></p>
+    </section>
+
+    <section id="adminLoginView" class="card hidden narrow-card">
+      <div class="section-head">
+        <div><p class="kicker">ADMIN</p><h2>เข้าสู่ระบบแอดมิน</h2></div>
+        <button class="icon-btn" data-close-admin>✕</button>
+      </div>
+      <label class="field"><span>Username</span><input id="adminUser" autocomplete="username" /></label>
+      <label class="field"><span>Password</span><input id="adminPass" type="password" autocomplete="current-password" /></label>
+      <button id="adminLoginBtn" class="primary-btn">เข้าสู่ระบบ</button>
+      <p id="loginStatus" class="status"></p>
+    </section>
+
+    <section id="adminView" class="hidden admin-grid">
+      <section class="card">
+        <div class="section-head">
+          <div><p class="kicker">ADMIN</p><h2>ตั้งค่ากราฟิก</h2></div>
+          <button id="logoutBtn" class="ghost-btn">ออกจากระบบ</button>
+        </div>
+
+        <div class="admin-block">
+          <h3>กราฟิกมาตรฐาน</h3>
+          <p class="muted">เป็นกราฟิกสำรองถาวร ถ้าธีมกิจกรรมหมดอายุหรือโหลดไม่ได้ ระบบจะกลับมาใช้อันนี้</p>
+          <label class="field"><span>ชื่อธีม</span><input id="standardName" placeholder="Standard 1" /></label>
+          <label class="field"><span>อัปโหลดกราฟิก 1080 × 1350</span><input id="standardFile" type="file" accept="image/*" /></label>
+          <button id="saveStandardBtn" class="secondary-btn">บันทึกกราฟิกมาตรฐาน</button>
+        </div>
+
+        <div class="admin-block">
+          <h3>กราฟิกกิจกรรมพิเศษ</h3>
+          <p class="muted">เลือกไฟล์แล้วดู Preview ก่อน กด “เปิดใช้” เมื่อพร้อม ระบบจะใช้เฉพาะช่วงวันที่ที่กำหนด</p>
+          <label class="field"><span>ชื่อธีม</span><input id="specialName" placeholder="Christmas" /></label>
+          <div class="two-cols">
+            <label class="field"><span>เริ่มใช้</span><input id="specialStart" type="date" /></label>
+            <label class="field"><span>สิ้นสุด</span><input id="specialEnd" type="date" /></label>
+          </div>
+          <label class="field"><span>อัปโหลดกราฟิก 1080 × 1350</span><input id="specialFile" type="file" accept="image/*" /></label>
+          <div class="button-row">
+            <button id="saveSpecialBtn" class="secondary-btn">Preview แล้วเปิดใช้กิจกรรมพิเศษ</button>
+            <button id="clearSpecialBtn" class="danger-btn">ล้างกิจกรรมพิเศษ</button>
+          </div>
+          <p id="themeStatus" class="status"></p>
+        </div>
+
+        <div class="admin-block safe-zone-block">
+          <div class="section-head mini-head">
+            <div>
+              <h3>Smart Safe Zone</h3>
+              <p class="muted">กำหนดตำแหน่งข้อความ/รูปแยกสำหรับแต่ละธีม เพื่อไม่ให้ชนของตกแต่ง</p>
+            </div>
+            <button id="resetZonesBtn" class="ghost-btn">คืนค่ามาตรฐาน</button>
+          </div>
+          <div class="two-cols compact-cols">
+            <label class="field"><span>กำลังแก้ธีม</span>
+              <select id="zoneTheme"><option value="standard">Standard</option><option value="special">กิจกรรมพิเศษ</option></select>
+            </label>
+            <label class="field"><span>องค์ประกอบ</span>
+              <select id="zoneElement"><option value="photo">รูปหลัก</option><option value="headline">หัวข้อ</option><option value="body">รายละเอียด</option><option value="date">วันที่ฝาก</option><option value="instagram">Instagram</option></select>
+            </label>
+          </div>
+          <div class="zone-grid">
+            <label><span>X</span><input id="zoneX" type="number" min="0" max="1080"></label>
+            <label><span>Y</span><input id="zoneY" type="number" min="0" max="1350"></label>
+            <label><span>W</span><input id="zoneW" type="number" min="20" max="1080"></label>
+            <label><span>H</span><input id="zoneH" type="number" min="20" max="1350"></label>
+          </div>
+          <div id="textStyleControls" class="text-style-controls">
+            <div class="two-cols compact-cols">
+              <label class="field"><span>สีข้อความ</span>
+                <select id="textColorMode"><option value="auto">อัตโนมัติตามฉาก</option><option value="custom">เลือกเอง</option></select>
+              </label>
+              <label class="field color-field"><span>เลือกสี</span><input id="textColor" type="color" value="#111111"></label>
+            </div>
+            <div class="shadow-row">
+              <label class="toggle-line"><input id="shadowEnabled" type="checkbox" checked><span>ใส่เงาข้อความ</span></label>
+              <label class="color-inline"><span>สีเงา</span><input id="shadowColor" type="color" value="#000000"></label>
+              <label><span>ความฟุ้ง</span><input id="shadowBlur" type="number" min="0" max="30" value="8"></label>
+              <label><span>ระยะเงา Y</span><input id="shadowOffsetY" type="number" min="-20" max="20" value="2"></label>
+            </div>
+            <p class="muted tiny">เลือกสีเองได้ หรือใช้ Auto ให้ระบบเลือกดำ/ขาวตามพื้นหลัง · ตั้งเงาแยกหัวข้อ รายละเอียด วันที่ และ Instagram ได้</p>
+          </div>
+          <p class="muted tiny">หน่วยเป็น px บนภาพ 1080 × 1350 · เปลี่ยนค่าแล้ว Preview จะอัปเดตทันที</p>
+          <canvas id="adminThemePreview" width="1080" height="1350"></canvas>
+          <div class="button-row zone-save-row"><button id="saveZonesBtn" class="secondary-btn">บันทึก Safe Zone + สีข้อความ</button></div><div class="zone-legend"><span>กรอบใน Preview คือพื้นที่ที่เว็บจะวางองค์ประกอบ</span></div>
+        </div>
+
+
+        <div class="admin-block">
+          <div class="section-head mini-head"><div><h3>Sticker Library</h3><p class="muted">อัป PNG/WebP/JPG ของเพจเอง ลูกเพจจะเห็นในหมวด “ของเพจ” ทันที</p></div><button id="refreshStickerAdminBtn" class="ghost-btn">รีเฟรช</button></div>
+          <div class="two-cols compact-cols"><label class="field"><span>ชื่อสติ๊กเกอร์</span><input id="adminStickerName" placeholder="เช่น โบว์พิริ"></label><label class="field"><span>หมวด</span><select id="adminStickerCategory"><option value="cute">คิขุ</option><option value="cool">เท่/เริ่ด</option><option value="reaction">มีม/Reaction</option><option value="sparkle">วิ้ง</option><option value="arrow">ลูกศร</option><option value="seasonal">เทศกาล</option></select></label></div>
+          <label class="field"><span>ไฟล์สติ๊กเกอร์</span><input id="adminStickerFile" type="file" accept="image/png,image/webp,image/jpeg"></label>
+          <button id="uploadAdminStickerBtn" class="secondary-btn">เพิ่มเข้าคลังสติ๊กเกอร์</button>
+          <div id="adminStickerList" class="admin-sticker-list"></div>
+        </div>
+        <div class="admin-block">
+          <div class="section-head mini-head">
+            <div><h3>ทีมแอดมิน LINE</h3><p class="muted">แอด OA → พิมพ์ “สมัครแอดมิน” → ใส่รหัส</p></div>
+            <button id="refreshTeamBtn" class="ghost-btn">รีเฟรช</button>
+          </div>
+          <div id="teamList" class="team-list"><div class="empty">กำลังโหลด...</div></div>
+        </div>
+      </section>
+
+      <section class="card queue-card">
+        <div class="section-head">
+          <div><p class="kicker">INBOX</p><h2>ข้อความที่ลูกเพจส่งมา</h2></div>
+          <button id="refreshQueueBtn" class="ghost-btn">รีเฟรช</button>
+        </div>
+        <div class="tabs">
+          <button class="tab active" data-tab="pending">ยังไม่ทำ</button>
+          <button class="tab" data-tab="done">ทำแล้ว</button>
+        </div>
+        <div id="queueList" class="queue-list"></div>
+      </section>
+    </section>
+  </main>
+
+  <script src="app.js"></script>
+  <script src="editor-v10.js"></script>
+</body>
+</html>
