@@ -5,7 +5,6 @@ import adminTeam from "./admin-team.mjs";
 import background from "./background.mjs";
 import publicConfig from "./public-config.mjs";
 import stickerLibrary from "./sticker-library.mjs";
-import submissionDownload from "./submission-download.mjs";
 import submissionImage from "./submission-image.mjs";
 import submissions from "./submissions.mjs";
 
@@ -97,9 +96,6 @@ app.all("/admin-team", (req, res) => bridge(req, res, adminTeam));
 app.all("/background", (req, res) => bridge(req, res, background));
 app.all("/public-config", (req, res) => bridge(req, res, publicConfig));
 app.all("/sticker-library", (req, res) => bridge(req, res, stickerLibrary));
-app.all("/submission-download", (req, res) =>
-  bridge(req, res, submissionDownload)
-);
 app.all("/submission-image", (req, res) =>
   bridge(req, res, submissionImage)
 );
