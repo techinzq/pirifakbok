@@ -34,7 +34,21 @@ function safeKey(key){const s=String(key||'').replaceAll('\\','/').replace(/^\/+
 function objectUrl(key){return `${SUPABASE_URL}/storage/v1/object/${encodeURIComponent(BUCKET)}/${safeKey(key).split('/').map(encodeURIComponent).join('/')}`;}
 async function checkedFetch(url,opts={}){requireSupabase();const r=await fetch(url,opts);if(!r.ok){const t=await r.text().catch(()=> '');throw new Error(`Supabase ${r.status}: ${t||r.statusText}`);}return r;}
 const supabaseStore={
-  async get(key,{type='text'}={}){const r=await fetch(objectUrl(key),{headers:headers()});if(r.status===404)return null;if(!r.ok)throw new Error(`Supabase ${r.status}: ${await r.text()}`);if(type==='arrayBuffer')return await r.arrayBuffer();const text=await r.text();if(type==='json')return JSON.parse(text);return text;},
+  async get(key,{type='text'}={}){
+    const r=await fetch(objectUrl(key),{headers:headers()});
+    if(!r.ok){
+      const raw=await r.text().catch(()=> '');
+      let info=null;
+      try{info=raw?JSON.parse(raw):null}catch{}
+      const missing=r.status===404 || info?.statusCode===404 || info?.code==='NoSuchKey' || info?.error==='not_found' || /Object not found/i.test(info?.message||raw);
+      if(missing)return null;
+      throw new Error(`Supabase ${r.status}: ${raw||r.statusText}`);
+    }
+    if(type==='arrayBuffer')return await r.arrayBuffer();
+    const text=await r.text();
+    if(type==='json')return text?JSON.parse(text):null;
+    return text;
+  },
   async set(key,value){let body=value,ct='application/octet-stream';if(typeof value==='string'){body=value;ct='text/plain; charset=utf-8';}else if(value instanceof ArrayBuffer){body=new Uint8Array(value);}else if(ArrayBuffer.isView(value)){body=value;}else if(value instanceof Blob){ct=value.type||ct;}await checkedFetch(objectUrl(key),{method:'POST',headers:headers({'Content-Type':ct,'x-upsert':'true'}),body});},
   async setJSON(key,value){await checkedFetch(objectUrl(key),{method:'POST',headers:headers({'Content-Type':'application/json','x-upsert':'true'}),body:JSON.stringify(value)});},
   async delete(key){const r=await fetch(`${SUPABASE_URL}/storage/v1/object/${encodeURIComponent(BUCKET)}`,{method:'DELETE',headers:headers({'Content-Type':'application/json'}),body:JSON.stringify({prefixes:[safeKey(key)]})});if(!r.ok&&r.status!==404)throw new Error(`Supabase ${r.status}: ${await r.text()}`);},
