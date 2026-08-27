@@ -128,3 +128,4 @@
   // Reset editor after successful submit (original handler clears fields)
   const mo=new MutationObserver(()=>{const t=document.querySelector('#submitStatus')?.textContent||'';if(t.includes('ส่งเรียบร้อย')){state=themeBase();syncAllFromTheme();selected=null;undoStack=[];redoStack=[];render()}});mo.observe(document.querySelector('#submitStatus'),{childList:true,subtree:true,characterData:true});
   renderStickerGrid();loadPublicStickers();ensureState();selected={kind:'text',key:'headline'};syncControls();render();
+})();
