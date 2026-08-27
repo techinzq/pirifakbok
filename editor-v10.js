@@ -54,7 +54,37 @@
     });c.restore();return {lines,totalH};
   }
   function hexAlpha(hex,a){const h=String(hex||'#fff').replace('#','');const v=h.length===3?h.split('').map(x=>x+x).join(''):h;return `rgba(${parseInt(v.slice(0,2),16)},${parseInt(v.slice(2,4),16)},${parseInt(v.slice(4,6),16)},${a})`}
-  function imageForSticker(s){if(stickerCache.has(s.src))return stickerCache.get(s.src);const i=new Image();i.onload=()=>{if(i.naturalWidth&&i.naturalHeight&&!s.aspect){s.aspect=i.naturalWidth/i.naturalHeight}render()};i.src=s.src;stickerCache.set(s.src,i);return i}
+  function imageForSticker(s){
+  if(stickerCache.has(s.src))return stickerCache.get(s.src);
+  const i=new Image();
+  i.onload=()=>{
+    if(i.naturalWidth&&i.naturalHeight&&!s.aspect){
+      s.aspect=i.naturalWidth/i.naturalHeight
+    }
+    render()
+  };
+  stickerCache.set(s.src,i);
+
+  if(/^https?:\/\//i.test(s.src)){
+    fetch(s.src,{mode:'cors',cache:'no-store'})
+      .then(r=>{if(!r.ok)throw new Error('Sticker load failed '+r.status);return r.blob()})
+      .then(b=>{
+        const u=URL.createObjectURL(b);
+        i.onload=()=>{
+          if(i.naturalWidth&&i.naturalHeight&&!s.aspect){
+            s.aspect=i.naturalWidth/i.naturalHeight
+          }
+          render();
+          setTimeout(()=>URL.revokeObjectURL(u),1000)
+        };
+        i.src=u
+      })
+      .catch(()=>{i.crossOrigin='anonymous';i.src=s.src});
+  }else{
+    i.src=s.src
+  }
+  return i
+}
   function drawSticker(c,s){c.save();c.globalAlpha=s.opacity??1;c.translate(s.x,s.y);c.rotate((s.rotation||0)*Math.PI/180);c.scale(s.flipX?-1:1,1);const size=s.size||120;if(s.kind==='emoji'){c.font=`${size}px Apple Color Emoji, Segoe UI Emoji, sans-serif`;c.textAlign='center';c.textBaseline='middle';c.fillText(s.value,0,0)}else if(s.kind==='label'){c.font=`900 ${Math.max(22,size*.34)}px Impact, Tahoma, sans-serif`;const m=c.measureText(s.value),w=Math.max(size,m.width+26),h=Math.max(48,size*.48);c.fillStyle='rgba(255,255,255,.92)';c.strokeStyle='#111';c.lineWidth=Math.max(3,size*.025);roundedRectOn(c,-w/2,-h/2,w,h,18);c.fill();c.stroke();c.fillStyle='#111';c.textAlign='center';c.textBaseline='middle';c.fillText(s.value,0,2)}else if(s.kind==='image'){const im=imageForSticker(s),ratio=s.aspect||((im?.naturalWidth&&im?.naturalHeight)?im.naturalWidth/im.naturalHeight:1),h=size/Math.max(.15,ratio);if(im?.complete&&im.naturalWidth)c.drawImage(im,-size/2,-h/2,size,h)}c.restore()}
   function originalDrawBase(){
     CX.clearRect(0,0,W,H);drawThemeOn(CX);const z=zones();const photo=photoImages[0]||null;if(photo){CX.save();roundedRectOn(CX,z.photo.x,z.photo.y,z.photo.w,z.photo.h,34);CX.clip();drawCoverOn(CX,photo,z.photo.x,z.photo.y,z.photo.w,z.photo.h);CX.restore()}drawBadge(CX);
