@@ -21,7 +21,7 @@ async function pushDiscord(meta, req){
   const url = process.env.DISCORD_WEBHOOK_URL;
   if(!url) return {ok:false, skipped:true, reason:'Discord webhook missing'};
   const origin = new URL(req.url).origin;
-  const imageUrl = `${origin}/.netlify/functions/submission-image?id=${encodeURIComponent(meta.id)}&page=1&share=${encodeURIComponent(meta.lineShareKey)}`;
+  const imageUrl = `${origin}/submission-image?id=${encodeURIComponent(meta.id)}&page=1&share=${encodeURIComponent(meta.lineShareKey)}`;
   const content = [
     `🔴 มี #ฝากบอกพิริ ใหม่ · ${meta.jobNo}`,
     meta.headline ? `หัวข้อ: ${cleanText(meta.headline,120)}` : '',

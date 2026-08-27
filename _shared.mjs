@@ -1,4 +1,5 @@
-import { getStore } from '@netlify/blobs';
+import fs from 'node:fs/promises';
+import path from 'node:path';
 
 export const DEFAULT_ZONES={
   photo:{x:710,y:145,w:280,h:280},
@@ -29,7 +30,56 @@ export function normalizeTextStyles(v){
   return out;
 }
 
-export function store(){ return getStore({name:'piri-post-generator',consistency:'strong'}); }
+const ROOT=process.env.PIRI_DATA_DIR || '/tmp/piri-post-generator';
+function safeKey(key){
+  const s=String(key||'').replaceAll('\\','/').replace(/^\/+/, '');
+  if(!s || s.split('/').some(p=>p==='..')) throw new Error('Invalid storage key');
+  return s;
+}
+function filePath(key){return path.join(ROOT, ...safeKey(key).split('/')) + '.blob';}
+async function ensureParent(p){await fs.mkdir(path.dirname(p),{recursive:true});}
+async function walk(dir,base=''){
+  let entries=[];
+  try{entries=await fs.readdir(dir,{withFileTypes:true});}catch(e){if(e?.code==='ENOENT')return [];throw e;}
+  const out=[];
+  for(const ent of entries){
+    const rel=base?`${base}/${ent.name}`:ent.name;
+    const full=path.join(dir,ent.name);
+    if(ent.isDirectory())out.push(...await walk(full,rel));
+    else if(ent.isFile()&&ent.name.endsWith('.blob'))out.push(rel.slice(0,-5));
+  }
+  return out;
+}
+const localStore={
+  async get(key,{type='text'}={}){
+    try{
+      const data=await fs.readFile(filePath(key));
+      if(type==='arrayBuffer')return data.buffer.slice(data.byteOffset,data.byteOffset+data.byteLength);
+      const text=data.toString('utf8');
+      if(type==='json')return JSON.parse(text);
+      return text;
+    }catch(e){if(e?.code==='ENOENT')return null;throw e;}
+  },
+  async set(key,value){
+    const p=filePath(key);await ensureParent(p);
+    let data;
+    if(value instanceof ArrayBuffer)data=Buffer.from(value);
+    else if(ArrayBuffer.isView(value))data=Buffer.from(value.buffer,value.byteOffset,value.byteLength);
+    else data=Buffer.from(String(value));
+    await fs.writeFile(p,data);
+  },
+  async setJSON(key,value){
+    const p=filePath(key);await ensureParent(p);await fs.writeFile(p,JSON.stringify(value));
+  },
+  async delete(key){
+    try{await fs.unlink(filePath(key));}catch(e){if(e?.code!=='ENOENT')throw e;}
+  },
+  async list({prefix=''}={}){
+    const keys=await walk(ROOT);
+    return {blobs:keys.filter(k=>k.startsWith(prefix)).map(key=>({key}))};
+  }
+};
+export function store(){return localStore;}
 export function auth(req){
   const u=req.headers.get('x-admin-user')||'';
   const p=req.headers.get('x-admin-pass')||'';
@@ -57,7 +107,7 @@ export function normalizeZones(z){
 }
 export async function getConfig(){
   const s=store();
-  const c=(await s.get('config',{type:'json',consistency:'strong'}))||{standard:null,special:null};
+  const c=(await s.get('config',{type:'json'}))||{standard:null,special:null};
   if(c.standard){ c.standard.zones=normalizeZones(c.standard.zones); c.standard.textStyles=normalizeTextStyles(c.standard.textStyles); }
   if(c.special){ c.special.zones=normalizeZones(c.special.zones); c.special.textStyles=normalizeTextStyles(c.special.textStyles); }
   return c;

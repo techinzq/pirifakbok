@@ -40,7 +40,7 @@ export default async (req)=>{
     const id=u.searchParams.get('id');
     if(id){const items=await list(),x=items.find(a=>a.id===id);if(!x)return new Response('Not found',{status:404});const buf=await s.get(x.key,{type:'arrayBuffer',consistency:'strong'});if(!buf)return new Response('Not found',{status:404});return new Response(buf,{headers:{'Content-Type':x.mime||'image/png','Cache-Control':'public,max-age=3600'}})}
     const items=await list();
-    return Response.json(items.map(x=>({...x,imageUrl:`/.netlify/functions/sticker-library?id=${encodeURIComponent(x.id)}`})),{headers:{'Cache-Control':'no-store'}});
+    return Response.json(items.map(x=>({...x,imageUrl:`${origin}/sticker-library?id=${encodeURIComponent(x.id)}`})),{headers:{'Cache-Control':'no-store'}});
   }
   if(req.method==='POST'){
     const fd=await req.formData();
@@ -52,7 +52,7 @@ export default async (req)=>{
       origin:isAdmin?'admin':'community'
     });
     if(out.error)return new Response(out.error,{status:out.status});
-    return Response.json({ok:true,id:out.item.id,duplicate:!!out.duplicate,imageUrl:`/.netlify/functions/sticker-library?id=${encodeURIComponent(out.item.id)}`,item:{...out.item,imageUrl:`/.netlify/functions/sticker-library?id=${encodeURIComponent(out.item.id)}`}});
+    return Response.json({ok:true,id:out.item.id,duplicate:!!out.duplicate,imageUrl:`${origin}/sticker-library?id=${encodeURIComponent(out.item.id)}`,item:{...out.item,imageUrl:`${origin}/sticker-library?id=${encodeURIComponent(out.item.id)}`}});
   }
   if(req.method==='DELETE'){
     if(!auth(req))return unauthorized();
