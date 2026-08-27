@@ -18,7 +18,7 @@ async function persistFile(file,{name,category='community',origin='community'}={
   if(!file||typeof file==='string')return {error:'Missing image',status:400};
   if(!allowed.has(file.type))return {error:'PNG, WebP, JPG only',status:400};
   const max=origin==='community'?2*1024*1024:4*1024*1024;
-  if(file.size>max)return {error:origin==='community'?'ไฟล์ใหญ่เกิน 2 MB':'File too large',status:400};
+  if(file.size>max)return {error:origin==='community'?'à¹à¸à¸¥à¹à¹à¸«à¸à¹à¹à¸à¸´à¸ 2 MB':'File too large',status:400};
   const bytes=await file.arrayBuffer();
   const hashBuf=new Uint8Array(await crypto.subtle.digest('SHA-256',bytes));const digest=Array.from(hashBuf,b=>b.toString(16).padStart(2,'0')).join('').slice(0,24);
   let items=await list();
@@ -35,12 +35,12 @@ async function persistFile(file,{name,category='community',origin='community'}={
   return {ok:true,item};
 }
 export default async (req)=>{
-  const u=new URL(req.url),s=store();
+  const u=new URL(req.url),s=store(),origin=u.origin;
   if(req.method==='GET'){
     const id=u.searchParams.get('id');
     if(id){const items=await list(),x=items.find(a=>a.id===id);if(!x)return new Response('Not found',{status:404});const buf=await s.get(x.key,{type:'arrayBuffer',consistency:'strong'});if(!buf)return new Response('Not found',{status:404});return new Response(buf,{headers:{'Content-Type':x.mime||'image/png','Cache-Control':'public,max-age=3600'}})}
     const items=await list();
-    return Response.json(items.map(x=>({...x,imageUrl:`/sticker-library?id=${encodeURIComponent(x.id)}`})),{headers:{'Cache-Control':'no-store'}});
+    return Response.json(items.map(x=>({...x,imageUrl:`${origin}/sticker-library?id=${encodeURIComponent(x.id)}`})),{headers:{'Cache-Control':'no-store'}});
   }
   if(req.method==='POST'){
     const fd=await req.formData();
@@ -52,7 +52,7 @@ export default async (req)=>{
       origin:isAdmin?'admin':'community'
     });
     if(out.error)return new Response(out.error,{status:out.status});
-    return Response.json({ok:true,id:out.item.id,duplicate:!!out.duplicate,imageUrl:`/sticker-library?id=${encodeURIComponent(out.item.id)}`,item:{...out.item,imageUrl:`/sticker-library?id=${encodeURIComponent(out.item.id)}`}});
+    return Response.json({ok:true,id:out.item.id,duplicate:!!out.duplicate,imageUrl:`${origin}/sticker-library?id=${encodeURIComponent(out.item.id)}`,item:{...out.item,imageUrl:`${origin}/sticker-library?id=${encodeURIComponent(out.item.id)}`}});
   }
   if(req.method==='DELETE'){
     if(!auth(req))return unauthorized();
