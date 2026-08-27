@@ -11,7 +11,7 @@ let adminConfig=null,adminPreviewImages={standard:null,special:null},adminZones=
 
 function authHeaders(){return adminAuth?{'X-Admin-User':adminAuth.user,'X-Admin-Pass':adminAuth.pass}:{}}
 function setStatus(el,msg,ok=true){if(!el)return;el.textContent=msg;el.style.color=ok?'#4b5563':'#b91c1c'}
-function loadImage(src){return new Promise((res,rej)=>{const i=new Image();i.onload=()=>res(i);i.onerror=rej;i.src=src})}
+function loadImage(src){return new Promise((res,rej)=>{const i=new Image();if(/^https?:\/\//i.test(src))i.crossOrigin='anonymous';i.onload=()=>res(i);i.onerror=rej;i.src=src})}
 function fileToImage(file){return new Promise((res,rej)=>{const r=new FileReader();r.onload=async()=>{try{res(await loadImage(r.result))}catch(e){rej(e)}};r.onerror=rej;r.readAsDataURL(file)})}
 function roundedRectOn(c,x,y,w,h,r){c.beginPath();c.moveTo(x+r,y);c.arcTo(x+w,y,x+w,y+h,r);c.arcTo(x+w,y+h,x,y+h,r);c.arcTo(x,y+h,x,y,r);c.arcTo(x,y,x+w,y,r);c.closePath()}
 function drawCoverOn(c,img,x,y,w,h){const s=Math.max(w/img.width,h/img.height),sw=w/s,sh=h/s,sx=(img.width-sw)/2,sy=(img.height-sh)/2;c.drawImage(img,sx,sy,sw,sh,x,y,w,h)}
