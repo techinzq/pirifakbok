@@ -3,6 +3,7 @@ import { auth, unauthorized, store, bangkokDate, thaiBangkokDate } from './_shar
 function id(){return `${Date.now()}-${crypto.randomUUID()}`}
 function shareKey(){return crypto.randomUUID().replaceAll('-','') + crypto.randomUUID().replaceAll('-','')}
 function cleanText(v,max=180){return String(v||'').trim().slice(0,max)}
+const inFlightSubmissions=new Map();
 function normalizeInstagram(v){
   let s=String(v||'').trim(); if(!s)return '';
   try{ if(/^https?:\/\//i.test(s)){const u=new URL(s); if(/(^|\.)instagram\.com$/i.test(u.hostname.replace(/^www\./,''))) s=u.pathname.split('/').filter(Boolean)[0]||'';} }catch{}
@@ -55,24 +56,71 @@ export default async (req)=>{
   if(req.method==='POST'){
     const fd=await req.formData();
     const idem=cleanText(fd.get('idempotencyKey'),100);
+
     if(idem){
       const existingId=await s.get(`submissions/idempotency/${idem}`,{type:'text',consistency:'strong'});
-      if(existingId){const m=await s.get(`submissions/meta/${existingId}`,{type:'json',consistency:'strong'});if(m)return Response.json({ok:true,id:m.id,jobNo:m.jobNo,pageCount:m.pageCount,lineNotified:!!m.lineNotified,duplicate:true})}
+      if(existingId){
+        const m=await s.get(`submissions/meta/${existingId}`,{type:'json',consistency:'strong'});
+        if(m)return Response.json({ok:true,id:m.id,jobNo:m.jobNo,pageCount:m.pageCount,lineNotified:!!m.lineNotified,duplicate:true});
+      }
+
+      const running=inFlightSubmissions.get(idem);
+      if(running){
+        const result=await running;
+        return Response.json({...result,duplicate:true});
+      }
     }
-    const file=fd.get('image'); if(!file||typeof file==='string')return new Response('Missing image',{status:400});
-    const sid=id(),jobNo=await nextJobNo();
-    const imageKey=`submissions/images/${sid}-1.png`; await s.set(imageKey,await file.arrayBuffer());
-    const file2=fd.get('image2');let imageKey2=null,pageCount=1;
-    if(file2&&typeof file2!=='string'){imageKey2=`submissions/images/${sid}-2.png`;await s.set(imageKey2,await file2.arrayBuffer());pageCount=2}
-    const meta={
-      id:sid,jobNo,imageKey,imageKey2,pageCount,lineShareKey:shareKey(),
-      photoCount:Number(fd.get('photoCount')||0),headline:String(fd.get('headline')||''),body:String(fd.get('body')||''),
-      depositDate:bangkokDate(),depositDateText:thaiBangkokDate(),instagram:normalizeInstagram(fd.get('instagram')),
-      themeName:String(fd.get('themeName')||''),status:'pending',createdAt:new Date().toISOString(),postedAt:null
-    };
-    await s.setJSON(`submissions/meta/${sid}`,meta); if(idem)await s.set(`submissions/idempotency/${idem}`,sid);
-    const line=await pushDiscord(meta,req); meta.lineNotified=!!line.ok;meta.lineNotifiedAt=line.ok?new Date().toISOString():null;meta.lineError=line.ok?null:(line.reason||`HTTP ${line.status||''}`);await s.setJSON(`submissions/meta/${sid}`,meta);
-    return Response.json({ok:true,id:sid,jobNo,pageCount,lineNotified:!!line.ok,lineError:line.ok?null:meta.lineError,duplicate:false});
+
+    const run=(async()=>{
+      const file=fd.get('image');
+      if(!file||typeof file==='string')throw new Error('Missing image');
+
+      const sid=id(),jobNo=await nextJobNo();
+      const imageKey=`submissions/images/${sid}-1.png`;
+      await s.set(imageKey,await file.arrayBuffer());
+
+      const file2=fd.get('image2');
+      let imageKey2=null,pageCount=1;
+      if(file2&&typeof file2!=='string'){
+        imageKey2=`submissions/images/${sid}-2.png`;
+        await s.set(imageKey2,await file2.arrayBuffer());
+        pageCount=2;
+      }
+
+      const meta={
+        id:sid,jobNo,imageKey,imageKey2,pageCount,lineShareKey:shareKey(),
+        photoCount:Number(fd.get('photoCount')||0),headline:String(fd.get('headline')||''),body:String(fd.get('body')||''),
+        depositDate:bangkokDate(),depositDateText:thaiBangkokDate(),instagram:normalizeInstagram(fd.get('instagram')),
+        themeName:String(fd.get('themeName')||''),status:'pending',createdAt:new Date().toISOString(),postedAt:null
+      };
+
+      await s.setJSON(`submissions/meta/${sid}`,meta);
+      if(idem)await s.set(`submissions/idempotency/${idem}`,sid);
+
+      const line=await pushDiscord(meta,req);
+      meta.lineNotified=!!line.ok;
+      meta.lineNotifiedAt=line.ok?new Date().toISOString():null;
+      meta.lineError=line.ok?null:(line.reason||`HTTP ${line.status||''}`);
+      await s.setJSON(`submissions/meta/${sid}`,meta);
+
+      return {
+        ok:true,id:sid,jobNo,pageCount,
+        lineNotified:!!line.ok,
+        lineError:line.ok?null:meta.lineError,
+        duplicate:false
+      };
+    })();
+
+    if(idem)inFlightSubmissions.set(idem,run);
+    try{
+      const result=await run;
+      return Response.json(result);
+    }catch(e){
+      if(String(e?.message||e)==='Missing image')return new Response('Missing image',{status:400});
+      throw e;
+    }finally{
+      if(idem&&inFlightSubmissions.get(idem)===run)inFlightSubmissions.delete(idem);
+    }
   }
   if(!auth(req))return unauthorized();
   if(req.method==='GET'){
